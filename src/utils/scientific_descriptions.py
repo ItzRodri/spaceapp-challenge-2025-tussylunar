@@ -126,7 +126,7 @@ class ExoplanetDescriptor:
         
         # Calculate planet radius estimate (rough approximation)
         transit_depth_normalized = transit_depth / 1000000  # Convert ppm to fraction
-        estimated_planet_radius = np.sqrt(transit_depth_normalized) * stellar_radius
+        estimated_planet_radius = float(np.sqrt(transit_depth_normalized) * stellar_radius)
         
         # Determine planet type based on characteristics
         planet_type = self._classify_planet_type(estimated_planet_radius, orbital_period, stellar_temp)
@@ -162,7 +162,8 @@ class ExoplanetDescriptor:
                                      estimated_planet_radius: float, planet_type: Dict) -> Dict[str, Any]:
         """Generate the detailed scientific description"""
         
-        similar_name, similar_data = similar_planet
+        similar_name, similar_info = similar_planet
+        similar_data = similar_info["data"]
         
         # Generate confidence explanation
         confidence_explanation = self._get_confidence_explanation(probabilities, snr)
@@ -253,11 +254,11 @@ class ExoplanetDescriptor:
         """Assess potential habitability"""
         # Calculate habitable zone (simplified)
         stellar_luminosity = (stellar_radius ** 2) * ((stellar_temp / 5778) ** 4)
-        habitable_zone_inner = 0.95 * np.sqrt(stellar_luminosity)
-        habitable_zone_outer = 1.37 * np.sqrt(stellar_luminosity)
+        habitable_zone_inner = float(0.95 * np.sqrt(stellar_luminosity))
+        habitable_zone_outer = float(1.37 * np.sqrt(stellar_luminosity))
         
         # Calculate current orbital distance (simplified)
-        orbital_distance = (orbital_period / 365.25) ** (2/3)
+        orbital_distance = float((orbital_period / 365.25) ** (2/3))
         
         is_in_habitable_zone = habitable_zone_inner <= orbital_distance <= habitable_zone_outer
         is_rocky = radius < 2.5
@@ -278,8 +279,8 @@ class ExoplanetDescriptor:
         return {
             "score": habitability_score,
             "explanation": habitability_explanation,
-            "in_habitable_zone": is_in_habitable_zone,
-            "is_rocky": is_rocky
+            "in_habitable_zone": bool(is_in_habitable_zone),
+            "is_rocky": bool(is_rocky)
         }
 
     def _get_why_explanation(self, prediction: str, planet_type: Dict, stellar_info: Dict, orbital_period: float) -> str:

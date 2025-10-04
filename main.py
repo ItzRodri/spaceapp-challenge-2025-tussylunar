@@ -20,6 +20,7 @@ from src.models.exoplanet_classifier import ExoplanetClassifier
 from src.data.preprocessor import DataPreprocessor
 from src.utils.validators import validate_input_data
 from src.utils.metrics import calculate_metrics
+from src.utils.scientific_descriptions import ExoplanetDescriptor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,15 +39,17 @@ templates = Jinja2Templates(directory="templates")
 # Initialize models and preprocessor
 classifier = None
 preprocessor = None
+descriptor = None
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize models on startup"""
-    global classifier, preprocessor
+    global classifier, preprocessor, descriptor
     try:
         logger.info("Loading models...")
         classifier = ExoplanetClassifier()
         preprocessor = DataPreprocessor()
+        descriptor = ExoplanetDescriptor()
         
         # Load pre-trained model if exists, otherwise train new one
         if os.path.exists("models/trained_model.pkl") and os.path.exists("models/preprocessor.pkl"):
@@ -110,22 +113,21 @@ async def predict_single(
         # Create DataFrame for prediction
         df = pd.DataFrame([input_data])
         
-        # Preprocess and predict with scientific descriptions
+        # Preprocess and predict
         processed_data = preprocessor.transform(df)
+        prediction_result = classifier.predict(processed_data)
         
-        # Add original data for scientific description
-        processed_data['id'] = target_id or f"PRED-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        processed_data['mission'] = mission
-        processed_data['orbital_period_days'] = orbital_period_days
-        processed_data['transit_depth_ppm'] = transit_depth_ppm
-        processed_data['transit_duration_hours'] = transit_duration_hours
-        processed_data['stellar_teff_K'] = stellar_teff_K
-        processed_data['stellar_radius_solar'] = stellar_radius_solar
-        processed_data['snr'] = snr
-        
-        # Get detailed prediction with scientific description
-        detailed_results = classifier.predict_with_scientific_description(processed_data)
-        result = detailed_results[0]
+        # Format response
+        result = {
+            "id": target_id or f"PRED-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            "mission": mission,
+            "prediction": prediction_result["predictions"][0],
+            "probas": prediction_result["probabilities"][0],
+            "confidence": prediction_result["confidence"][0],
+            "explainability": {
+                "shap_top5": prediction_result["shap_values"][0]
+            }
+        }
         
         return JSONResponse(content=result)
         
@@ -187,6 +189,18 @@ async def get_metrics():
     except Exception as e:
         logger.error(f"Error getting metrics: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/stats")
+def get_stats():
+    """Get prediction statistics for dashboard"""
+    # Return static statistics
+    stats = {
+        "total_predictions": 1247,
+        "confirmed_planets": 89,
+        "candidates": 156,
+        "false_positives": 1002
+    }
+    return stats
 
 @app.get("/api/template")
 async def download_template():

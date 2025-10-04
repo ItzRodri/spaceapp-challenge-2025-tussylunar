@@ -203,28 +203,15 @@
 {% block scripts %}
 <script>
 // Load dashboard stats
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
     // Simulate loading stats (in real app, fetch from API)
-    // Load real statistics from API
-    try {
-        const response = await fetch('/api/metrics');
-        const data = await response.json();
-        
-        // Animate counters
-        animateCounter('total-predictions', data.total_predictions);
-        animateCounter('confirmed-planets', data.confirmed_planets);
-        animateCounter('candidates', data.candidates);
-        animateCounter('false-positives', data.false_positives);
-    } catch (error) {
-        console.error('Error loading statistics:', error);
-        // Fallback to static values
-        setTimeout(() => {
-            document.getElementById('total-predictions').textContent = '1,247';
-            document.getElementById('confirmed-planets').textContent = '89';
-            document.getElementById('candidates').textContent = '156';
-            document.getElementById('false-positives').textContent = '1,002';
-        }, 1000);
-    }
+    // Use static values for now
+    setTimeout(() => {
+        animateCounter('total-predictions', 1247);
+        animateCounter('confirmed-planets', 89);
+        animateCounter('candidates', 156);
+        animateCounter('false-positives', 1002);
+    }, 1000);
 });
 
 function animateCounter(elementId, targetValue) {
