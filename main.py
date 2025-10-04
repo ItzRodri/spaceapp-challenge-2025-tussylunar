@@ -117,6 +117,18 @@ async def predict_single(
         processed_data = preprocessor.transform(df)
         prediction_result = classifier.predict(processed_data)
         
+        # Generate scientific description
+        scientific_desc = descriptor.generate_scientific_description(
+            prediction=prediction_result["predictions"][0],
+            probabilities=prediction_result["probabilities"][0],
+            orbital_period=orbital_period_days,
+            transit_depth=transit_depth_ppm,
+            transit_duration=transit_duration_hours,
+            stellar_temp=stellar_teff_K,
+            stellar_radius=stellar_radius_solar,
+            snr=snr
+        )
+        
         # Format response
         result = {
             "id": target_id or f"PRED-{datetime.now().strftime('%Y%m%d%H%M%S')}",
@@ -126,7 +138,8 @@ async def predict_single(
             "confidence": prediction_result["confidence"][0],
             "explainability": {
                 "shap_top5": prediction_result["shap_values"][0]
-            }
+            },
+            "scientific_description": scientific_desc
         }
         
         return JSONResponse(content=result)
