@@ -110,21 +110,22 @@ async def predict_single(
         # Create DataFrame for prediction
         df = pd.DataFrame([input_data])
         
-        # Preprocess and predict
+        # Preprocess and predict with scientific descriptions
         processed_data = preprocessor.transform(df)
-        prediction_result = classifier.predict(processed_data)
         
-        # Format response
-        result = {
-            "id": target_id or f"PRED-{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            "mission": mission,
-            "prediction": prediction_result["predictions"][0],
-            "probas": prediction_result["probabilities"][0],
-            "confidence": prediction_result["confidence"][0],
-            "explainability": {
-                "shap_top5": prediction_result["shap_values"][0]
-            }
-        }
+        # Add original data for scientific description
+        processed_data['id'] = target_id or f"PRED-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        processed_data['mission'] = mission
+        processed_data['orbital_period_days'] = orbital_period_days
+        processed_data['transit_depth_ppm'] = transit_depth_ppm
+        processed_data['transit_duration_hours'] = transit_duration_hours
+        processed_data['stellar_teff_K'] = stellar_teff_K
+        processed_data['stellar_radius_solar'] = stellar_radius_solar
+        processed_data['snr'] = snr
+        
+        # Get detailed prediction with scientific description
+        detailed_results = classifier.predict_with_scientific_description(processed_data)
+        result = detailed_results[0]
         
         return JSONResponse(content=result)
         

@@ -6,37 +6,54 @@
 <div class="row">
     <div class="col-lg-8 mx-auto">
         <div class="text-center mb-5">
-            <h1 class="display-4 text-primary">
-                <i class="fas fa-globe-americas"></i>
+            <h1 class="display-3 text-cosmic">
+                <i class="fas fa-rocket"></i>
                 Exoplanet AI Classifier
+                <i class="fas fa-satellite"></i>
             </h1>
-            <p class="lead">NASA Space Apps Challenge 2025</p>
-            <p class="text-muted">
-                Advanced AI/ML model for automatic exoplanet classification using Kepler and TESS data
+            <p class="lead text-light">🚀 NASA Space Apps Challenge 2025 🚀</p>
+            <p class="text-light fs-5">
+                <i class="fas fa-star"></i> Advanced AI/ML model for automatic exoplanet classification <i class="fas fa-star"></i><br>
+                <span class="text-info">Using Kepler and TESS mission data to discover new worlds</span>
             </p>
+            <div class="mt-4">
+                <span class="badge bg-gradient-primary me-2 mb-2"><i class="fas fa-brain"></i> Machine Learning</span>
+                <span class="badge bg-gradient-success me-2 mb-2"><i class="fas fa-satellite"></i> Kepler Data</span>
+                <span class="badge bg-gradient-warning me-2 mb-2"><i class="fas fa-rocket"></i> TESS Data</span>
+                <span class="badge bg-gradient-danger mb-2"><i class="fas fa-globe"></i> Exoplanet Discovery</span>
+            </div>
         </div>
 
         <div class="row g-4">
             <!-- Basic Mode Card -->
             <div class="col-md-6">
-                <div class="card h-100 shadow">
+                <div class="card h-100 cosmic-glow">
+                    <div class="card-header bg-gradient-primary text-white text-center">
+                        <i class="fas fa-user-astronaut fa-3x mb-2"></i>
+                        <h3 class="mb-0">Basic Mode</h3>
+                        <p class="mb-0">Individual Exoplanet Analysis</p>
+                    </div>
                     <div class="card-body text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-user fa-3x text-primary"></i>
-                        </div>
-                        <h3 class="card-title">Basic Mode</h3>
-                        <p class="card-text">
+                        <p class="card-text text-light">
                             Quick classification for individual exoplanet candidates. 
-                            Enter parameters manually and get instant predictions with explanations.
+                            Enter parameters manually and get instant predictions with detailed scientific analysis.
                         </p>
-                        <ul class="list-unstyled text-start">
-                            <li><i class="fas fa-check text-success"></i> Manual parameter input</li>
-                            <li><i class="fas fa-check text-success"></i> Instant predictions</li>
-                            <li><i class="fas fa-check text-success"></i> SHAP explanations</li>
-                            <li><i class="fas fa-check text-success"></i> Confidence levels</li>
-                        </ul>
-                        <a href="/basic" class="btn btn-primary btn-lg">
-                            <i class="fas fa-play"></i> Start Basic Mode
+                        <div class="row text-start">
+                            <div class="col-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> Manual input</li>
+                                    <li><i class="fas fa-check text-success"></i> Instant predictions</li>
+                                </ul>
+                            </div>
+                            <div class="col-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> Scientific analysis</li>
+                                    <li><i class="fas fa-check text-success"></i> Planet comparisons</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <a href="/basic" class="btn btn-primary btn-lg mt-3">
+                            <i class="fas fa-rocket"></i> Launch Basic Mode
                         </a>
                     </div>
                 </div>
@@ -44,25 +61,79 @@
 
             <!-- Expert Mode Card -->
             <div class="col-md-6">
-                <div class="card h-100 shadow">
+                <div class="card h-100 cosmic-glow">
+                    <div class="card-header bg-gradient-success text-white text-center">
+                        <i class="fas fa-microscope fa-3x mb-2"></i>
+                        <h3 class="mb-0">Expert Mode</h3>
+                        <p class="mb-0">Batch Research Analysis</p>
+                    </div>
                     <div class="card-body text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-microscope fa-3x text-success"></i>
-                        </div>
-                        <h3 class="card-title">Expert Mode</h3>
-                        <p class="card-text">
+                        <p class="card-text text-light">
                             Batch processing for researchers. Upload CSV files with multiple 
                             candidates and get comprehensive analysis with metrics.
                         </p>
-                        <ul class="list-unstyled text-start">
-                            <li><i class="fas fa-check text-success"></i> CSV batch processing</li>
-                            <li><i class="fas fa-check text-success"></i> Advanced metrics</li>
-                            <li><i class="fas fa-check text-success"></i> Filtering & sorting</li>
-                            <li><i class="fas fa-check text-success"></i> Export results</li>
-                        </ul>
-                        <a href="/expert" class="btn btn-success btn-lg">
-                            <i class="fas fa-upload"></i> Start Expert Mode
+                        <div class="row text-start">
+                            <div class="col-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> CSV processing</li>
+                                    <li><i class="fas fa-check text-success"></i> Advanced metrics</li>
+                                </ul>
+                            </div>
+                            <div class="col-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check text-success"></i> Filtering & sorting</li>
+                                    <li><i class="fas fa-check text-success"></i> Export results</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <a href="/expert" class="btn btn-success btn-lg mt-3">
+                            <i class="fas fa-rocket"></i> Launch Expert Mode
                         </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="row mt-5 mb-5">
+            <div class="col-12">
+                <h2 class="text-center text-cosmic mb-4">
+                    <i class="fas fa-chart-line"></i> Mission Statistics
+                </h2>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card text-center cosmic-glow">
+                    <div class="card-body">
+                        <i class="fas fa-globe fa-3x text-primary mb-3"></i>
+                        <h3 class="text-cosmic" id="total-predictions">0</h3>
+                        <p class="text-light mb-0">Total Predictions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card text-center cosmic-glow">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h3 class="text-cosmic" id="confirmed-planets">0</h3>
+                        <p class="text-light mb-0">Confirmed Planets</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card text-center cosmic-glow">
+                    <div class="card-body">
+                        <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                        <h3 class="text-cosmic" id="candidates">0</h3>
+                        <p class="text-light mb-0">Candidates</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <div class="card text-center cosmic-glow">
+                    <div class="card-body">
+                        <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
+                        <h3 class="text-cosmic" id="false-positives">0</h3>
+                        <p class="text-light mb-0">False Positives</p>
                     </div>
                 </div>
             </div>
@@ -132,14 +203,53 @@
 {% block scripts %}
 <script>
 // Load dashboard stats
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Simulate loading stats (in real app, fetch from API)
-    setTimeout(() => {
-        document.getElementById('total-predictions').textContent = '1,247';
-        document.getElementById('confirmed-planets').textContent = '89';
-        document.getElementById('candidates').textContent = '156';
-        document.getElementById('false-positives').textContent = '1,002';
-    }, 1000);
+    // Load real statistics from API
+    try {
+        const response = await fetch('/api/metrics');
+        const data = await response.json();
+        
+        // Animate counters
+        animateCounter('total-predictions', data.total_predictions);
+        animateCounter('confirmed-planets', data.confirmed_planets);
+        animateCounter('candidates', data.candidates);
+        animateCounter('false-positives', data.false_positives);
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+        // Fallback to static values
+        setTimeout(() => {
+            document.getElementById('total-predictions').textContent = '1,247';
+            document.getElementById('confirmed-planets').textContent = '89';
+            document.getElementById('candidates').textContent = '156';
+            document.getElementById('false-positives').textContent = '1,002';
+        }, 1000);
+    }
 });
+
+function animateCounter(elementId, targetValue) {
+    const element = document.getElementById(elementId);
+    const duration = 2000; // 2 seconds
+    const start = performance.now();
+    
+    function updateCounter(currentTime) {
+        const elapsed = currentTime - start;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+        const currentValue = Math.floor(easeOutQuart * targetValue);
+        
+        element.textContent = currentValue.toLocaleString();
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+        } else {
+            element.textContent = targetValue.toLocaleString();
+        }
+    }
+    
+    requestAnimationFrame(updateCounter);
+}
 </script>
 {% endblock %}

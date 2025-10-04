@@ -13,6 +13,12 @@ from sklearn.preprocessing import LabelEncoder
 import joblib
 import logging
 from typing import Dict, List, Any, Tuple
+import sys
+import os
+
+# Add src directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from utils.scientific_descriptions import ExoplanetDescriptor
 import os
 
 logger = logging.getLogger(__name__)
@@ -27,6 +33,7 @@ class ExoplanetClassifier:
         self.shap_explainer = None
         self.is_trained = False
         self.training_metrics = {}
+        self.descriptor = ExoplanetDescriptor()
         
     def train_model(self, koi_path: str = "cumulative_2025.10.04_08.00.51.csv", 
                    toi_path: str = "TOI_2025.10.04_08.32.36.csv"):
@@ -207,6 +214,52 @@ class ExoplanetClassifier:
             "confidence": confidence,
             "shap_values": shap_top5_list
         }
+    
+    def predict_with_scientific_description(self, X: pd.DataFrame) -> List[Dict[str, Any]]:
+        """Make predictions with detailed scientific descriptions"""
+        if not self.is_trained:
+            raise ValueError("Model must be trained before making predictions")
+        
+        # Get basic predictions
+        basic_results = self.predict(X)
+        
+        # Generate scientific descriptions for each prediction
+        detailed_results = []
+        
+        for i, (prediction, probabilities, shap_values) in enumerate(zip(
+            basic_results["predictions"], 
+            basic_results["probabilities"], 
+            basic_results["shap_values"]
+        )):
+            # Extract features for this prediction
+            row = X.iloc[i]
+            
+            # Get scientific description
+            scientific_desc = self.descriptor.generate_scientific_description(
+                prediction=prediction,
+                probabilities=probabilities,
+                orbital_period=row.get('orbital_period_days', 0),
+                transit_depth=row.get('transit_depth_ppm', 0),
+                transit_duration=row.get('transit_duration_hours', 0),
+                stellar_temp=row.get('stellar_teff_K', 0),
+                stellar_radius=row.get('stellar_radius_solar', 0),
+                snr=row.get('snr', None)
+            )
+            
+            # Combine with basic prediction results
+            detailed_result = {
+                "id": row.get('id', f'prediction_{i}'),
+                "mission": row.get('mission', 'unknown'),
+                "prediction": prediction,
+                "probabilities": probabilities,
+                "confidence": self._get_confidence_level(probabilities),
+                "explainability": {"shap_top5": shap_values},
+                "scientific_description": scientific_desc
+            }
+            
+            detailed_results.append(detailed_result)
+        
+        return detailed_results
     
     def get_metrics(self) -> Dict[str, Any]:
         """Get model performance metrics"""
