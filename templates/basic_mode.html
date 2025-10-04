@@ -154,8 +154,72 @@
             </div>
         </div>
 
-        <!-- Resultados y secciones adicionales igual que tu código original ... -->
+        <!-- Results Section -->
+        <div id="results" class="mt-4" style="display: none;">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-chart-line"></i> Classification Results</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Prediction -->
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5>Prediction</h5>
+                                <div id="prediction-badge" class="badge fs-4 p-3"></div>
+                                <div id="confidence-badge" class="badge fs-6 mt-2"></div>
+                            </div>
+                        </div>
 
+                        <!-- Probabilities -->
+                        <div class="col-md-8">
+                            <h5>Class Probabilities</h5>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="confirmed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%">
+                                    <span id="confirmed-text">CONFIRMED: 0%</span>
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="candidate-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%">
+                                    <span id="candidate-text">CANDIDATE: 0%</span>
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="false-positive-bar" class="progress-bar bg-danger" role="progressbar" style="width: 0%">
+                                    <span id="false-positive-text">FALSE POSITIVE: 0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SHAP Explanations -->
+                    <div class="mt-4">
+                        <h5><i class="fas fa-brain"></i> Feature Importance (SHAP)</h5>
+                        <div id="shap-explanations"></div>
+                    </div>
+
+                    <!-- Official Links -->
+                    <div class="mt-4">
+                        <h5><i class="fas fa-external-link-alt"></i> Official Resources</h5>
+                        <div id="official-links"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center mt-4" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Analyzing exoplanet candidate...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="alert alert-danger mt-4" style="display: none;">
+            <h5><i class="fas fa-exclamation-triangle"></i> Error</h5>
+            <div id="error-message"></div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -168,19 +232,42 @@ var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
   return new bootstrap.Tooltip(tooltipTriggerEl)
 })
 
-// Tu script existente para el formulario y displayResults sigue igual
 document.getElementById('predictionForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
+    console.log('Form submitted!'); // Debug log
+    
+    // Show loading
     document.getElementById('loading').style.display = 'block';
     document.getElementById('results').style.display = 'none';
     document.getElementById('error-alert').style.display = 'none';
+    
+    // Get form data
     const formData = new FormData(this);
+    
+    console.log('Form data:', Object.fromEntries(formData)); // Debug log
+    
     try {
-        const response = await fetch('/api/predict/single', {method: 'POST', body: formData});
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const response = await fetch('/api/predict/single', {
+            method: 'POST',
+            body: formData
+        });
+        
+        console.log('Response status:', response.status); // Debug log
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        
+        console.log('Result:', result); // Debug log
+        
+        // Display results
         displayResults(result);
+        
     } catch (error) {
+        console.error('Error:', error); // Debug log
         document.getElementById('error-message').textContent = error.message;
         document.getElementById('error-alert').style.display = 'block';
     } finally {
@@ -188,6 +275,144 @@ document.getElementById('predictionForm').addEventListener('submit', async funct
     }
 });
 
-// Funciones displayResults, updateProgressBar, displaySHAPExplanations y displayOfficialLinks siguen igual
+function displayResults(result) {
+    console.log('Displaying results:', result); // Debug log
+    
+    // Update prediction badge
+    const predictionBadge = document.getElementById('prediction-badge');
+    predictionBadge.textContent = result.prediction;
+    predictionBadge.className = 'badge fs-4 p-3 ';
+    
+    if (result.prediction === 'CONFIRMED') {
+        predictionBadge.className += 'bg-success';
+    } else if (result.prediction === 'CANDIDATE') {
+        predictionBadge.className += 'bg-warning';
+    } else {
+        predictionBadge.className += 'bg-danger';
+    }
+    
+    // Update confidence badge
+    const confidenceBadge = document.getElementById('confidence-badge');
+    confidenceBadge.textContent = `Confidence: ${result.confidence}`;
+    confidenceBadge.className = 'badge fs-6 mt-2 ';
+    
+    if (result.confidence === 'HIGH') {
+        confidenceBadge.className += 'bg-success';
+    } else if (result.confidence === 'MEDIUM') {
+        confidenceBadge.className += 'bg-warning';
+    } else {
+        confidenceBadge.className += 'bg-danger';
+    }
+    
+    // Update probability bars
+    updateProgressBar('confirmed', result.probas.CONFIRMED);
+    updateProgressBar('candidate', result.probas.CANDIDATE);
+    updateProgressBar('false-positive', result.probas.FALSE_POSITIVE);
+    
+    // Display SHAP explanations
+    displaySHAPExplanations(result.explainability.shap_top5);
+    
+    // Display official links
+    displayOfficialLinks(result.id, result.mission);
+    
+    // Show results
+    document.getElementById('results').style.display = 'block';
+}
+
+function updateProgressBar(className, probability) {
+    const percentage = Math.round(probability * 100);
+    const bar = document.getElementById(`${className}-bar`);
+    const text = document.getElementById(`${className}-text`);
+    
+    bar.style.width = `${percentage}%`;
+    
+    const classNames = {
+        'confirmed': 'CONFIRMED',
+        'candidate': 'CANDIDATE', 
+        'false-positive': 'FALSE POSITIVE'
+    };
+    
+    text.textContent = `${classNames[className]}: ${percentage}%`;
+}
+
+function displaySHAPExplanations(shapData) {
+    const container = document.getElementById('shap-explanations');
+    container.innerHTML = '';
+    
+    shapData.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        
+        const impact = item.shap > 0 ? 'positive' : 'negative';
+        const impactClass = item.shap > 0 ? 'text-success' : 'text-danger';
+        const impactIcon = item.shap > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+        
+        div.innerHTML = `
+            <div class="col-md-4">
+                <strong>${item.feature.replace(/_/g, ' ').toUpperCase()}</strong>
+            </div>
+            <div class="col-md-3">
+                Value: ${item.value.toFixed(3)}
+            </div>
+            <div class="col-md-3 ${impactClass}">
+                <i class="fas ${impactIcon}"></i> Impact: ${item.shap.toFixed(3)}
+            </div>
+            <div class="col-md-2">
+                <span class="badge bg-${impact === 'positive' ? 'success' : 'danger'}">
+                    ${impact.toUpperCase()}
+                </span>
+            </div>
+        `;
+        
+        container.appendChild(div);
+    });
+}
+
+function displayOfficialLinks(id, mission) {
+    const container = document.getElementById('official-links');
+    container.innerHTML = '';
+    
+    if (id && id.startsWith('TOI-')) {
+        const toiNumber = id.replace('TOI-', '');
+        container.innerHTML = `
+            <a href="https://exoplanetarchive.ipac.caltech.edu/overview/${id}" 
+               target="_blank" class="btn btn-outline-primary me-2">
+                <i class="fas fa-external-link-alt"></i> NASA Exoplanet Archive
+            </a>
+            <a href="https://tess.mit.edu/observations/${toiNumber}" 
+               target="_blank" class="btn btn-outline-info">
+                <i class="fas fa-satellite"></i> TESS Mission
+            </a>
+        `;
+    } else if (id && id.startsWith('KOI-')) {
+        container.innerHTML = `
+            <a href="https://exoplanetarchive.ipac.caltech.edu/overview/${id}" 
+               target="_blank" class="btn btn-outline-primary me-2">
+                <i class="fas fa-external-link-alt"></i> NASA Exoplanet Archive
+            </a>
+            <a href="https://www.nasa.gov/mission_pages/kepler/main/index.html" 
+               target="_blank" class="btn btn-outline-warning">
+                <i class="fas fa-satellite"></i> Kepler Mission
+            </a>
+        `;
+    } else {
+        container.innerHTML = `
+            <p class="text-muted">
+                <i class="fas fa-info-circle"></i> 
+                No specific links available for this prediction ID.
+            </p>
+        `;
+    }
+}
+
+// Debug: Add click listener to button
+document.addEventListener('DOMContentLoaded', function() {
+    const submitBtn = document.getElementById('predictBtn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function() {
+            console.log('Button clicked!'); // Debug log
+        });
+    }
+});
 </script>
 {% endblock %}
