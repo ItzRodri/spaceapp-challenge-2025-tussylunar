@@ -1,0 +1,3 @@
+mission,id,orbital_period_days,transit_duration_hours,transit_depth_ppm,stellar_radius_solar,stellar_teff_K,snr
+tess,TOI-1234,3.701,2.1,850,0.92,5700,12.4
+kepler,KOI-5678,12.5,4.5,1200,1.1,6100,9.8
