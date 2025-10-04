@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Expert Mode - Exoplanet AI Classifier{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="text-center mb-4">
+            <h1 class="display-5 text-success">
+                <i class="fas fa-microscope"></i> Expert Mode
+            </h1>
+            <p class="lead">Batch processing and advanced analysis for researchers</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-upload"></i> CSV Upload</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="csvFile" class="form-label">Select CSV File</label>
+                                <input type="file" class="form-control" id="csvFile" name="file" 
+                                       accept=".csv" required>
+                                <div class="form-text">
+                                    CSV file must contain the required columns. 
+                                    <a href="/api/template" class="text-decoration-none">
+                                        <i class="fas fa-download"></i> Download template
+                                    </a>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-rocket"></i> Process Batch
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Required Columns:</h6>
+                            <ul class="mb-0 small">
+                                <li>mission</li>
+                                <li>id</li>
+                                <li>orbital_period_days</li>
+                                <li>transit_duration_hours</li>
+                                <li>transit_depth_ppm</li>
+                                <li>stellar_radius_solar</li>
+                                <li>stellar_teff_K</li>
+                                <li>snr (optional)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center" style="display: none;">
+            <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Processing...</span>
+            </div>
+            <p class="mt-2">Processing batch predictions...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="alert alert-danger" style="display: none;">
+            <h5><i class="fas fa-exclamation-triangle"></i> Error</h5>
+            <div id="error-message"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" style="display: none;">
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">
+                                <i class="fas fa-list"></i> Total
+                            </h5>
+                            <h3 id="total-count" class="text-primary">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">
+                                <i class="fas fa-check-circle"></i> Confirmed
+                            </h5>
+                            <h3 id="confirmed-count" class="text-success">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">
+                                <i class="fas fa-question-circle"></i> Candidates
+                            </h5>
+                            <h3 id="candidates-count" class="text-warning">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger">
+                                <i class="fas fa-times-circle"></i> False Positives
+                            </h5>
+                            <h3 id="false-positives-count" class="text-danger">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card shadow mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="mission-filter" class="form-label">Mission</label>
+                            <select class="form-select" id="mission-filter">
+                                <option value="">All Missions</option>
+                                <option value="kepler">Kepler</option>
+                                <option value="tess">TESS</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="class-filter" class="form-label">Prediction Class</label>
+                            <select class="form-select" id="class-filter">
+                                <option value="">All Classes</option>
+                                <option value="CONFIRMED">Confirmed</option>
+                                <option value="CANDIDATE">Candidate</option>
+                                <option value="FALSE_POSITIVE">False Positive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="confidence-filter" class="form-label">Confidence</label>
+                            <select class="form-select" id="confidence-filter">
+                                <option value="">All Confidence Levels</option>
+                                <option value="HIGH">High</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="LOW">Low</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="threshold-filter" class="form-label">Probability Threshold</label>
+                            <select class="form-select" id="threshold-filter">
+                                <option value="0">All</option>
+                                <option value="0.5">> 50%</option>
+                                <option value="0.7">> 70%</option>
+                                <option value="0.9">> 90%</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="card shadow">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Batch Results</h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="exportResults()">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="showMetrics()">
+                            <i class="fas fa-chart-bar"></i> View Metrics
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="results-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Mission</th>
+                                    <th>Prediction</th>
+                                    <th>Confidence</th>
+                                    <th>Confirmed %</th>
+                                    <th>Candidate %</th>
+                                    <th>False Positive %</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Modal -->
+        <div class="modal fade" id="metricsModal" tabindex="-1">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-chart-bar"></i> Model Metrics</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="metrics-content">
+                            <!-- Metrics will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Details Modal -->
+        <div class="modal fade" id="detailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-info-circle"></i> Prediction Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="details-content">
+                        <!-- Details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentResults = [];
+let filteredResults = [];
+
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showError('Please select a CSV file');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('error-alert').style.display = 'none';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/predict/batch', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Store results
+        currentResults = result.predictions;
+        filteredResults = [...currentResults];
+        
+        // Display results
+        displayResults(result);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showError(error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+});
+
+function displayResults(result) {
+    // Update summary cards
+    updateSummaryCards(result.predictions);
+    
+    // Update table
+    updateResultsTable(result.predictions);
+    
+    // Show results section
+    document.getElementById('results').style.display = 'block';
+    
+    // Setup filters
+    setupFilters();
+}
+
+function updateSummaryCards(predictions) {
+    const total = predictions.length;
+    const confirmed = predictions.filter(p => p.prediction === 'CONFIRMED').length;
+    const candidates = predictions.filter(p => p.prediction === 'CANDIDATE').length;
+    const falsePositives = predictions.filter(p => p.prediction === 'FALSE_POSITIVE').length;
+    
+    document.getElementById('total-count').textContent = total;
+    document.getElementById('confirmed-count').textContent = confirmed;
+    document.getElementById('candidates-count').textContent = candidates;
+    document.getElementById('false-positives-count').textContent = falsePositives;
+}
+
+function updateResultsTable(predictions) {
+    const tbody = document.getElementById('results-tbody');
+    tbody.innerHTML = '';
+    
+    predictions.forEach((pred, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${pred.id || 'N/A'}</td>
+            <td>
+                <span class="badge bg-${pred.mission === 'tess' ? 'info' : 'warning'}">
+                    ${pred.mission.toUpperCase()}
+                </span>
+            </td>
+            <td>
+                <span class="badge bg-${getPredictionBadgeColor(pred.prediction)}">
+                    ${pred.prediction}
+                </span>
+            </td>
+            <td>
+                <span class="badge bg-${getConfidenceBadgeColor(pred.confidence)}">
+                    ${pred.confidence}
+                </span>
+            </td>
+            <td>${(pred.prob_confirmed * 100).toFixed(1)}%</td>
+            <td>${(pred.prob_candidate * 100).toFixed(1)}%</td>
+            <td>${(pred.prob_false_positive * 100).toFixed(1)}%</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="showDetails(${index})">
+                    <i class="fas fa-eye"></i> Details
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getPredictionBadgeColor(prediction) {
+    switch(prediction) {
+        case 'CONFIRMED': return 'success';
+        case 'CANDIDATE': return 'warning';
+        case 'FALSE_POSITIVE': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getConfidenceBadgeColor(confidence) {
+    switch(confidence) {
+        case 'HIGH': return 'success';
+        case 'MEDIUM': return 'warning';
+        case 'LOW': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function setupFilters() {
+    const filters = ['mission-filter', 'class-filter', 'confidence-filter', 'threshold-filter'];
+    
+    filters.forEach(filterId => {
+        document.getElementById(filterId).addEventListener('change', applyFilters);
+    });
+}
+
+function applyFilters() {
+    const mission = document.getElementById('mission-filter').value;
+    const predictionClass = document.getElementById('class-filter').value;
+    const confidence = document.getElementById('confidence-filter').value;
+    const threshold = parseFloat(document.getElementById('threshold-filter').value);
+    
+    filteredResults = currentResults.filter(pred => {
+        let passes = true;
+        
+        if (mission && pred.mission !== mission) passes = false;
+        if (predictionClass && pred.prediction !== predictionClass) passes = false;
+        if (confidence && pred.confidence !== confidence) passes = false;
+        
+        if (threshold > 0) {
+            const maxProb = Math.max(pred.prob_confirmed, pred.prob_candidate, pred.prob_false_positive);
+            if (maxProb < threshold) passes = false;
+        }
+        
+        return passes;
+    });
+    
+    updateResultsTable(filteredResults);
+    updateSummaryCards(filteredResults);
+}
+
+function showDetails(index) {
+    const pred = filteredResults[index];
+    const content = document.getElementById('details-content');
+    
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Basic Information</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>ID:</strong></td><td>${pred.id || 'N/A'}</td></tr>
+                    <tr><td><strong>Mission:</strong></td><td>${pred.mission.toUpperCase()}</td></tr>
+                    <tr><td><strong>Prediction:</strong></td><td>
+                        <span class="badge bg-${getPredictionBadgeColor(pred.prediction)}">
+                            ${pred.prediction}
+                        </span>
+                    </td></tr>
+                    <tr><td><strong>Confidence:</strong></td><td>
+                        <span class="badge bg-${getConfidenceBadgeColor(pred.confidence)}">
+                            ${pred.confidence}
+                        </span>
+                    </td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Probabilities</h6>
+                <div class="progress mb-2" style="height: 20px;">
+                    <div class="progress-bar bg-success" style="width: ${pred.prob_confirmed * 100}%">
+                        CONFIRMED: ${(pred.prob_confirmed * 100).toFixed(1)}%
+                    </div>
+                </div>
+                <div class="progress mb-2" style="height: 20px;">
+                    <div class="progress-bar bg-warning" style="width: ${pred.prob_candidate * 100}%">
+                        CANDIDATE: ${(pred.prob_candidate * 100).toFixed(1)}%
+                    </div>
+                </div>
+                <div class="progress mb-2" style="height: 20px;">
+                    <div class="progress-bar bg-danger" style="width: ${pred.prob_false_positive * 100}%">
+                        FALSE POSITIVE: ${(pred.prob_false_positive * 100).toFixed(1)}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+}
+
+function exportResults() {
+    if (filteredResults.length === 0) {
+        alert('No results to export');
+        return;
+    }
+    
+    const csvContent = convertToCSV(filteredResults);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'exoplanet_predictions.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function convertToCSV(data) {
+    const headers = ['id', 'mission', 'prediction', 'confidence', 'prob_confirmed', 'prob_candidate', 'prob_false_positive'];
+    const csvRows = [headers.join(',')];
+    
+    data.forEach(row => {
+        const values = headers.map(header => row[header] || '');
+        csvRows.push(values.join(','));
+    });
+    
+    return csvRows.join('\n');
+}
+
+function showMetrics() {
+    fetch('/api/metrics')
+        .then(response => response.json())
+        .then(metrics => {
+            const content = document.getElementById('metrics-content');
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Model Performance</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Accuracy:</strong></td><td>${(metrics.accuracy * 100).toFixed(2)}%</td></tr>
+                            <tr><td><strong>ROC-AUC (Macro):</strong></td><td>${metrics.roc_auc_macro.toFixed(3)}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Per-Class Performance</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>CONFIRMED F1:</strong></td><td>${metrics.classification_report.CONFIRMED['f1-score'].toFixed(3)}</td></tr>
+                            <tr><td><strong>CANDIDATE F1:</strong></td><td>${metrics.classification_report.CANDIDATE['f1-score'].toFixed(3)}</td></tr>
+                            <tr><td><strong>FALSE_POSITIVE F1:</strong></td><td>${metrics.classification_report.FALSE_POSITIVE['f1-score'].toFixed(3)}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+            new bootstrap.Modal(document.getElementById('metricsModal')).show();
+        })
+        .catch(error => {
+            console.error('Error loading metrics:', error);
+            showError('Failed to load metrics');
+        });
+}
+
+function showError(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error-alert').style.display = 'block';
+}
+</script>
+{% endblock %}

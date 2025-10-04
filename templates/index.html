@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Exoplanet AI Classifier{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-5">
+            <h1 class="display-4 text-primary">
+                <i class="fas fa-globe-americas"></i>
+                Exoplanet AI Classifier
+            </h1>
+            <p class="lead">NASA Space Apps Challenge 2025</p>
+            <p class="text-muted">
+                Advanced AI/ML model for automatic exoplanet classification using Kepler and TESS data
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Basic Mode Card -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-user fa-3x text-primary"></i>
+                        </div>
+                        <h3 class="card-title">Basic Mode</h3>
+                        <p class="card-text">
+                            Quick classification for individual exoplanet candidates. 
+                            Enter parameters manually and get instant predictions with explanations.
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success"></i> Manual parameter input</li>
+                            <li><i class="fas fa-check text-success"></i> Instant predictions</li>
+                            <li><i class="fas fa-check text-success"></i> SHAP explanations</li>
+                            <li><i class="fas fa-check text-success"></i> Confidence levels</li>
+                        </ul>
+                        <a href="/basic" class="btn btn-primary btn-lg">
+                            <i class="fas fa-play"></i> Start Basic Mode
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expert Mode Card -->
+            <div class="col-md-6">
+                <div class="card h-100 shadow">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-microscope fa-3x text-success"></i>
+                        </div>
+                        <h3 class="card-title">Expert Mode</h3>
+                        <p class="card-text">
+                            Batch processing for researchers. Upload CSV files with multiple 
+                            candidates and get comprehensive analysis with metrics.
+                        </p>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success"></i> CSV batch processing</li>
+                            <li><i class="fas fa-check text-success"></i> Advanced metrics</li>
+                            <li><i class="fas fa-check text-success"></i> Filtering & sorting</li>
+                            <li><i class="fas fa-check text-success"></i> Export results</li>
+                        </ul>
+                        <a href="/expert" class="btn btn-success btn-lg">
+                            <i class="fas fa-upload"></i> Start Expert Mode
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="mt-5">
+            <h2 class="text-center mb-4">Key Features</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <i class="fas fa-brain fa-2x text-info mb-3"></i>
+                        <h5>Advanced AI/ML</h5>
+                        <p class="text-muted">XGBoost with calibration and SHAP explanations</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <i class="fas fa-database fa-2x text-warning mb-3"></i>
+                        <h5>Multi-Mission Data</h5>
+                        <p class="text-muted">Trained on Kepler (KOI) and TESS (TOI) datasets</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line fa-2x text-danger mb-3"></i>
+                        <h5>Performance Metrics</h5>
+                        <p class="text-muted">ROC-AUC, PR-AUC, and reliability diagrams</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="mt-5">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="border rounded p-3">
+                        <h3 class="text-primary" id="total-predictions">0</h3>
+                        <p class="mb-0">Total Predictions</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3">
+                        <h3 class="text-success" id="confirmed-planets">0</h3>
+                        <p class="mb-0">Confirmed Planets</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3">
+                        <h3 class="text-warning" id="candidates">0</h3>
+                        <p class="mb-0">Candidates</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="border rounded p-3">
+                        <h3 class="text-danger" id="false-positives">0</h3>
+                        <p class="mb-0">False Positives</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load dashboard stats
+document.addEventListener('DOMContentLoaded', function() {
+    // Simulate loading stats (in real app, fetch from API)
+    setTimeout(() => {
+        document.getElementById('total-predictions').textContent = '1,247';
+        document.getElementById('confirmed-planets').textContent = '89';
+        document.getElementById('candidates').textContent = '156';
+        document.getElementById('false-positives').textContent = '1,002';
+    }, 1000);
+});
+</script>
+{% endblock %}

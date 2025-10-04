@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Basic Mode - Exoplanet AI Classifier{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-4">
+            <h1 class="display-5 text-primary">
+                <i class="fas fa-user"></i> Basic Mode
+            </h1>
+            <p class="lead">Quick exoplanet classification for individual candidates</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-edit"></i> Exoplanet Parameters</h4>
+            </div>
+            <div class="card-body">
+                <form id="predictionForm">
+                    <div class="row g-3">
+                        <!-- Mission Selection -->
+                        <div class="col-md-6">
+                            <label for="mission" class="form-label">Mission</label>
+                            <select class="form-select" id="mission" name="mission" required>
+                                <option value="tess">TESS</option>
+                                <option value="kepler">Kepler</option>
+                            </select>
+                            <div class="form-text">Select the mission that observed this candidate</div>
+                        </div>
+
+                        <!-- Target ID -->
+                        <div class="col-md-6">
+                            <label for="target_id" class="form-label">Target ID (Optional)</label>
+                            <input type="text" class="form-control" id="target_id" name="target_id" 
+                                   placeholder="e.g., TOI-1234 or KOI-5678">
+                        </div>
+
+                        <!-- Orbital Period -->
+                        <div class="col-md-6">
+                            <label for="orbital_period_days" class="form-label">
+                                Orbital Period (days) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="orbital_period_days" 
+                                   name="orbital_period_days" step="0.001" min="0.1" max="1000" required>
+                            <div class="form-text">Range: 0.1 - 1000 days</div>
+                        </div>
+
+                        <!-- Transit Duration -->
+                        <div class="col-md-6">
+                            <label for="transit_duration_hours" class="form-label">
+                                Transit Duration (hours) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="transit_duration_hours" 
+                                   name="transit_duration_hours" step="0.01" min="0.05" max="50" required>
+                            <div class="form-text">Range: 0.05 - 50 hours</div>
+                        </div>
+
+                        <!-- Transit Depth -->
+                        <div class="col-md-6">
+                            <label for="transit_depth_ppm" class="form-label">
+                                Transit Depth (ppm) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="transit_depth_ppm" 
+                                   name="transit_depth_ppm" step="1" min="10" max="500000" required>
+                            <div class="form-text">Range: 10 - 500,000 ppm</div>
+                        </div>
+
+                        <!-- Stellar Radius -->
+                        <div class="col-md-6">
+                            <label for="stellar_radius_solar" class="form-label">
+                                Stellar Radius (solar) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="stellar_radius_solar" 
+                                   name="stellar_radius_solar" step="0.01" min="0.1" max="100" required>
+                            <div class="form-text">Range: 0.1 - 100 solar radii</div>
+                        </div>
+
+                        <!-- Stellar Temperature -->
+                        <div class="col-md-6">
+                            <label for="stellar_teff_K" class="form-label">
+                                Stellar Temperature (K) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="stellar_teff_K" 
+                                   name="stellar_teff_K" step="1" min="2000" max="15000" required>
+                            <div class="form-text">Range: 2000 - 15000 K</div>
+                        </div>
+
+                        <!-- Signal-to-Noise Ratio -->
+                        <div class="col-md-6">
+                            <label for="snr" class="form-label">Signal-to-Noise Ratio (Optional)</label>
+                            <input type="number" class="form-control" id="snr" name="snr" 
+                                   step="0.1" min="0" max="10000">
+                            <div class="form-text">Range: 0 - 10,000</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <button type="submit" class="btn btn-primary btn-lg" id="predictBtn">
+                            <i class="fas fa-rocket"></i> Classify Exoplanet
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary btn-lg ms-2">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="mt-4" style="display: none;">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-chart-line"></i> Classification Results</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Prediction -->
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5>Prediction</h5>
+                                <div id="prediction-badge" class="badge fs-4 p-3"></div>
+                                <div id="confidence-badge" class="badge fs-6 mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- Probabilities -->
+                        <div class="col-md-8">
+                            <h5>Class Probabilities</h5>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="confirmed-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%">
+                                    <span id="confirmed-text">CONFIRMED: 0%</span>
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="candidate-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%">
+                                    <span id="candidate-text">CANDIDATE: 0%</span>
+                                </div>
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div id="false-positive-bar" class="progress-bar bg-danger" role="progressbar" style="width: 0%">
+                                    <span id="false-positive-text">FALSE POSITIVE: 0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SHAP Explanations -->
+                    <div class="mt-4">
+                        <h5><i class="fas fa-brain"></i> Feature Importance (SHAP)</h5>
+                        <div id="shap-explanations"></div>
+                    </div>
+
+                    <!-- Official Links -->
+                    <div class="mt-4">
+                        <h5><i class="fas fa-external-link-alt"></i> Official Resources</h5>
+                        <div id="official-links"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center mt-4" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Analyzing exoplanet candidate...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="error-alert" class="alert alert-danger mt-4" style="display: none;">
+            <h5><i class="fas fa-exclamation-triangle"></i> Error</h5>
+            <div id="error-message"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Show loading
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('error-alert').style.display = 'none';
+    
+    // Get form data
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/predict/single', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Display results
+        displayResults(result);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('error-message').textContent = error.message;
+        document.getElementById('error-alert').style.display = 'block';
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+});
+
+function displayResults(result) {
+    // Update prediction badge
+    const predictionBadge = document.getElementById('prediction-badge');
+    predictionBadge.textContent = result.prediction;
+    predictionBadge.className = 'badge fs-4 p-3 ';
+    
+    if (result.prediction === 'CONFIRMED') {
+        predictionBadge.className += 'bg-success';
+    } else if (result.prediction === 'CANDIDATE') {
+        predictionBadge.className += 'bg-warning';
+    } else {
+        predictionBadge.className += 'bg-danger';
+    }
+    
+    // Update confidence badge
+    const confidenceBadge = document.getElementById('confidence-badge');
+    confidenceBadge.textContent = `Confidence: ${result.confidence}`;
+    confidenceBadge.className = 'badge fs-6 mt-2 ';
+    
+    if (result.confidence === 'HIGH') {
+        confidenceBadge.className += 'bg-success';
+    } else if (result.confidence === 'MEDIUM') {
+        confidenceBadge.className += 'bg-warning';
+    } else {
+        confidenceBadge.className += 'bg-danger';
+    }
+    
+    // Update probability bars
+    updateProgressBar('confirmed', result.probas.CONFIRMED);
+    updateProgressBar('candidate', result.probas.CANDIDATE);
+    updateProgressBar('false-positive', result.probas.FALSE_POSITIVE);
+    
+    // Display SHAP explanations
+    displaySHAPExplanations(result.explainability.shap_top5);
+    
+    // Display official links
+    displayOfficialLinks(result.id, result.mission);
+    
+    // Show results
+    document.getElementById('results').style.display = 'block';
+}
+
+function updateProgressBar(className, probability) {
+    const percentage = Math.round(probability * 100);
+    const bar = document.getElementById(`${className}-bar`);
+    const text = document.getElementById(`${className}-text`);
+    
+    bar.style.width = `${percentage}%`;
+    
+    const classNames = {
+        'confirmed': 'CONFIRMED',
+        'candidate': 'CANDIDATE', 
+        'false-positive': 'FALSE POSITIVE'
+    };
+    
+    text.textContent = `${classNames[className]}: ${percentage}%`;
+}
+
+function displaySHAPExplanations(shapData) {
+    const container = document.getElementById('shap-explanations');
+    container.innerHTML = '';
+    
+    shapData.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        
+        const impact = item.shap > 0 ? 'positive' : 'negative';
+        const impactClass = item.shap > 0 ? 'text-success' : 'text-danger';
+        const impactIcon = item.shap > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+        
+        div.innerHTML = `
+            <div class="col-md-4">
+                <strong>${item.feature.replace(/_/g, ' ').toUpperCase()}</strong>
+            </div>
+            <div class="col-md-3">
+                Value: ${item.value.toFixed(3)}
+            </div>
+            <div class="col-md-3 ${impactClass}">
+                <i class="fas ${impactIcon}"></i> Impact: ${item.shap.toFixed(3)}
+            </div>
+            <div class="col-md-2">
+                <span class="badge bg-${impact === 'positive' ? 'success' : 'danger'}">
+                    ${impact.toUpperCase()}
+                </span>
+            </div>
+        `;
+        
+        container.appendChild(div);
+    });
+}
+
+function displayOfficialLinks(id, mission) {
+    const container = document.getElementById('official-links');
+    container.innerHTML = '';
+    
+    if (id && id.startsWith('TOI-')) {
+        const toiNumber = id.replace('TOI-', '');
+        container.innerHTML = `
+            <a href="https://exoplanetarchive.ipac.caltech.edu/overview/${id}" 
+               target="_blank" class="btn btn-outline-primary me-2">
+                <i class="fas fa-external-link-alt"></i> NASA Exoplanet Archive
+            </a>
+            <a href="https://tess.mit.edu/observations/${toiNumber}" 
+               target="_blank" class="btn btn-outline-info">
+                <i class="fas fa-satellite"></i> TESS Mission
+            </a>
+        `;
+    } else if (id && id.startsWith('KOI-')) {
+        container.innerHTML = `
+            <a href="https://exoplanetarchive.ipac.caltech.edu/overview/${id}" 
+               target="_blank" class="btn btn-outline-primary me-2">
+                <i class="fas fa-external-link-alt"></i> NASA Exoplanet Archive
+            </a>
+            <a href="https://www.nasa.gov/mission_pages/kepler/main/index.html" 
+               target="_blank" class="btn btn-outline-warning">
+                <i class="fas fa-satellite"></i> Kepler Mission
+            </a>
+        `;
+    } else {
+        container.innerHTML = `
+            <p class="text-muted">
+                <i class="fas fa-info-circle"></i> 
+                No specific links available for this prediction ID.
+            </p>
+        `;
+    }
+}
+</script>
+{% endblock %}
