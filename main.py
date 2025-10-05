@@ -60,6 +60,10 @@ async def startup_event():
             logger.info("Training new model...")
             classifier.train_model()
             logger.info("Model training completed")
+            # Ensure the global preprocessor is fitted by loading the saved preprocessor
+            if os.path.exists("models/preprocessor.pkl"):
+                preprocessor.load_preprocessor("models/preprocessor.pkl")
+                logger.info("Preprocessor loaded after training")
             
         logger.info("Application startup completed")
     except Exception as e:
