@@ -110,7 +110,7 @@
                 <div class="card text-center cosmic-glow">
                     <div class="card-body">
                         <i class="fas fa-globe fa-3x text-primary mb-3"></i>
-                        <h3 class="text-cosmic" id="total-predictions">0</h3>
+                        <h3 class="text-cosmic stat-total-predictions">0</h3>
                         <p class="text-light mb-0">Total Predictions</p>
                     </div>
                 </div>
@@ -119,7 +119,7 @@
                 <div class="card text-center cosmic-glow">
                     <div class="card-body">
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <h3 class="text-cosmic" id="confirmed-planets">0</h3>
+                        <h3 class="text-cosmic stat-confirmed-planets">0</h3>
                         <p class="text-light mb-0">Confirmed Planets</p>
                     </div>
                 </div>
@@ -128,7 +128,7 @@
                 <div class="card text-center cosmic-glow">
                     <div class="card-body">
                         <i class="fas fa-search fa-3x text-warning mb-3"></i>
-                        <h3 class="text-cosmic" id="candidates">0</h3>
+                        <h3 class="text-cosmic stat-candidates">0</h3>
                         <p class="text-light mb-0">Candidates</p>
                     </div>
                 </div>
@@ -137,7 +137,7 @@
                 <div class="card text-center cosmic-glow">
                     <div class="card-body">
                         <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
-                        <h3 class="text-cosmic" id="false-positives">0</h3>
+                        <h3 class="text-cosmic stat-false-positives">0</h3>
                         <p class="text-light mb-0">False Positives</p>
                     </div>
                 </div>
@@ -177,25 +177,25 @@
             <div class="row text-center">
                 <div class="col-md-3">
                     <div class="border rounded p-3">
-                        <h3 class="text-primary" id="total-predictions">0</h3>
+                        <h3 class="text-primary stat-total-predictions">0</h3>
                         <p class="mb-0">Total Predictions</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-3">
-                        <h3 class="text-success" id="confirmed-planets">0</h3>
+                        <h3 class="text-success stat-confirmed-planets">0</h3>
                         <p class="mb-0">Confirmed Planets</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-3">
-                        <h3 class="text-warning" id="candidates">0</h3>
+                        <h3 class="text-warning stat-candidates">0</h3>
                         <p class="mb-0">Candidates</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="border rounded p-3">
-                        <h3 class="text-danger" id="false-positives">0</h3>
+                        <h3 class="text-danger stat-false-positives">0</h3>
                         <p class="mb-0">False Positives</p>
                     </div>
                 </div>
@@ -215,24 +215,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         const data = await response.json();
         
         // Animate counters
-        animateCounter('total-predictions', data.total_predictions);
-        animateCounter('confirmed-planets', data.confirmed_planets);
-        animateCounter('candidates', data.candidates);
-        animateCounter('false-positives', data.false_positives);
+        animateCounter('.stat-total-predictions', data.total_predictions);
+        animateCounter('.stat-confirmed-planets', data.confirmed_planets);
+        animateCounter('.stat-candidates', data.candidates);
+        animateCounter('.stat-false-positives', data.false_positives);
     } catch (error) {
         console.error('Error loading statistics:', error);
         // Fallback to static values
         setTimeout(() => {
-            document.getElementById('total-predictions').textContent = '1,247';
-            document.getElementById('confirmed-planets').textContent = '89';
-            document.getElementById('candidates').textContent = '156';
-            document.getElementById('false-positives').textContent = '1,002';
+            document.querySelectorAll('.stat-total-predictions').forEach(el => el.textContent = '1,247');
+            document.querySelectorAll('.stat-confirmed-planets').forEach(el => el.textContent = '89');
+            document.querySelectorAll('.stat-candidates').forEach(el => el.textContent = '156');
+            document.querySelectorAll('.stat-false-positives').forEach(el => el.textContent = '1,002');
         }, 1000);
     }
 });
 
-function animateCounter(elementId, targetValue) {
-    const element = document.getElementById(elementId);
+function animateCounter(selector, targetValue) {
+    const elements = document.querySelectorAll(selector);
     const duration = 2000; // 2 seconds
     const start = performance.now();
     
@@ -244,12 +244,16 @@ function animateCounter(elementId, targetValue) {
         const easeOutQuart = 1 - Math.pow(1 - progress, 4);
         const currentValue = Math.floor(easeOutQuart * targetValue);
         
-        element.textContent = currentValue.toLocaleString();
+        elements.forEach(element => {
+            element.textContent = currentValue.toLocaleString();
+        });
         
         if (progress < 1) {
             requestAnimationFrame(updateCounter);
         } else {
-            element.textContent = targetValue.toLocaleString();
+            elements.forEach(element => {
+                element.textContent = targetValue.toLocaleString();
+            });
         }
     }
     
