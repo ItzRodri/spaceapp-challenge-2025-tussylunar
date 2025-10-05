@@ -48,6 +48,39 @@ python main.py
 ### 4. Access the Web Interface
 Open your browser and navigate to `http://localhost:8001`
 
+## 🚀 Deploy (Render / Heroku)
+
+### Requirements
+- `gunicorn` is included in `requirements.txt`
+- Environment variables configured from your dashboard (.env not committed)
+
+### Start command
+Use Gunicorn with Uvicorn workers:
+
+```bash
+gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT
+```
+
+### Static files
+Static assets are served via FastAPI/Starlette `StaticFiles` mounted in `main.py` (no WhiteNoise needed).
+
+### Environment variables
+Create a `.env` (or configure in the dashboard) using this template:
+
+```bash
+# FastAPI / Server
+PORT=8001
+ENV=production
+LOG_LEVEL=info
+
+# Model / Paths
+MODEL_PATH=models/trained_model.pkl
+PREPROCESSOR_PATH=models/preprocessor.pkl
+
+# Optional feature flags
+ENABLE_SKY_VIEW=true
+```
+
 ## 📁 Project Structure
 
 ```
