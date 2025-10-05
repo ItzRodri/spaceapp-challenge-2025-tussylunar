@@ -1,4 +1,6 @@
-# 🚀 Exoplanet AI Classifier - NASA Space Apps Challenge 2025
+# 🚀 ExoLynx - NASA Space Apps Challenge 2025
+
+## 👩‍🚀 Equipo: TussyLunar
 
 ## ✅ Project Completion Summary
 
@@ -62,6 +64,7 @@
 - **Modo Básico**: Formulario intuitivo para usuarios generales
 - **Modo Experto**: Herramientas avanzadas para investigadores
 - **Visualizaciones**: Gráficos interactivos con Plotly
+ - **Dashboard**: Estadísticas de misión con contadores animados
 
 ### 🔧 Funcionalidades Técnicas
 - **API REST**: Endpoints documentados con FastAPI
@@ -151,12 +154,18 @@ Este proyecto contribuye a:
 - [ ] Análisis de incertidumbre bayesiano
 - [ ] Integración con catálogos astronómicos
 
+## 🏷️ Cambios Recientes
+
+- Renombrado del proyecto a "ExoLynx" en la UI (título en `templates/index.html`).
+- Corrección en el dashboard de `templates/index.html`: se reemplazaron IDs duplicados por clases compartidas para que las estadísticas se actualicen en todas las secciones.
+- Endpoint de estadísticas disponible: `GET /api/stats` (valores demo).
+
 ## 🎉 Conclusión
 
 Hemos desarrollado exitosamente una aplicación completa de clasificación de exoplanetas que cumple con todos los requisitos del NASA Space Apps Challenge 2025. La aplicación combina técnicas avanzadas de machine learning con una interfaz de usuario intuitiva, proporcionando una herramienta valiosa tanto para investigadores como para el público general interesado en la exploración de exoplanetas.
 
-**¡El proyecto está listo para presentación y uso! 🚀**
+**¡ExoLynx por Team TussyLunar está listo para presentación y uso! 🚀**
 
 ---
 
-*Desarrollado con ❤️ para NASA Space Apps Challenge 2025*
+*Desarrollado por Team TussyLunar con ❤️ para NASA Space Apps Challenge 2025*

@@ -1,4 +1,6 @@
-# Exoplanet AI Classifier
+# ExoLynx
+
+**Team TussyLunar** — NASA Space Apps Challenge 2025
 
 **NASA Space Apps Challenge 2025** - Advanced AI/ML model for automatic exoplanet classification using Kepler and TESS data.
 
@@ -19,6 +21,7 @@
 - Reliability diagrams and calibration analysis
 - Feature importance rankings
 - Mission-specific performance metrics
+ - Dashboard mission stats with animated counters
 
 ## 🚀 Quick Start
 
@@ -131,6 +134,7 @@ The model achieves:
 - `POST /api/predict/single` - Single prediction
 - `POST /api/predict/batch` - Batch prediction
 - `GET /api/metrics` - Model performance metrics
+- `GET /api/stats` - Dashboard statistics (demo values)
 - `GET /api/template` - Download CSV template
 
 ## 📈 Future Enhancements
@@ -144,7 +148,7 @@ The model achieves:
 
 ## 🤝 Contributing
 
-This project was developed for the NASA Space Apps Challenge 2025. For questions or contributions, please contact the development team.
+This project (ExoLynx) was developed by Team TussyLunar for the NASA Space Apps Challenge 2025. For questions or contributions, please contact the development team.
 
 ## 📄 License
 
@@ -159,4 +163,4 @@ This project is part of the NASA Space Apps Challenge 2025 and follows the chall
 
 ---
 
-**Built with ❤️ for NASA Space Apps Challenge 2025**
+**Built with ❤️ by Team TussyLunar for NASA Space Apps Challenge 2025**
