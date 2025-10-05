@@ -82,6 +82,141 @@ async def expert_mode(request: Request):
     """Expert mode - batch CSV processing"""
     return templates.TemplateResponse("expert_mode.html", {"request": request})
 
+@app.get("/sky", response_class=HTMLResponse)
+async def sky_view(request: Request):
+    """3D sky visualization page"""
+    return templates.TemplateResponse("sky_view.html", {"request": request})
+
+@app.get("/api/sky/objects")
+async def api_sky_objects():
+    """Return sky objects with simulated RA/Dec/Distance positions based on the dataset."""
+    objects = []
+    try:
+        # Use the large_example_exoplanet_data.csv file
+        csv_path = "large_example_exoplanet_data.csv"
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+            # Remove empty rows
+            df = df.dropna(subset=['id'])
+            
+            for idx, row in df.iterrows():
+                try:
+                    # Generate simulated celestial coordinates based on ID hash for consistency
+                    import hashlib
+                    id_hash = hashlib.md5(str(row['id']).encode()).hexdigest()
+                    
+                    # Convert hash to RA/Dec coordinates (0-360° RA, -90° to +90° Dec)
+                    ra_deg = (int(id_hash[:8], 16) % 360)
+                    dec_deg = ((int(id_hash[8:16], 16) % 180) - 90)
+                    
+                    # Simulate distance based on orbital period (shorter periods = closer stars)
+                    base_distance = 20 + (row['orbital_period_days'] * 2)
+                    dist_pc = min(base_distance, 200)  # Cap at 200pc for visualization
+                    
+                    obj = {
+                        "id": str(row['id']),
+                        "mission": str(row['mission']).lower(),
+                        "ra_deg": ra_deg,
+                        "dec_deg": dec_deg,
+                        "dist_pc": dist_pc,
+                        "type": str(row['mission']).lower(),
+                        "orbital_period_days": float(row['orbital_period_days']),
+                        "transit_duration_hours": float(row['transit_duration_hours']),
+                        "transit_depth_ppm": float(row['transit_depth_ppm']),
+                        "stellar_radius_solar": float(row['stellar_radius_solar']),
+                        "stellar_teff_K": float(row['stellar_teff_K']),
+                        "snr": float(row['snr']) if pd.notnull(row['snr']) else None
+                    }
+                    objects.append(obj)
+                except Exception as e:
+                    logging.warning(f"Failed to process row {idx}: {e}")
+                    continue
+        else:
+            # Fallback demo objects
+            objects = [
+                {"id": "DEMO-1", "mission": "tess", "ra_deg": 120.0, "dec_deg": -30.0, "dist_pc": 40.0, "type": "tess"},
+                {"id": "DEMO-2", "mission": "kepler", "ra_deg": 250.0, "dec_deg": 20.0, "dist_pc": 120.0, "type": "kepler"}
+            ]
+    except Exception as e:
+        logging.exception("Failed to build sky objects")
+        objects = []
+    return {"objects": objects}
+
+@app.get("/api/sky/predict")
+async def api_sky_predict(id: str):
+    """Given an object id, return real model predictions using the dataset."""
+    try:
+        # Load the dataset and find the object
+        csv_path = "large_example_exoplanet_data.csv"
+        if not os.path.exists(csv_path):
+            raise HTTPException(status_code=404, detail="Dataset not found")
+        
+        df = pd.read_csv(csv_path)
+        df = df.dropna(subset=['id'])
+        
+        # Find the object by ID
+        obj_row = df[df['id'] == id]
+        if obj_row.empty:
+            raise HTTPException(status_code=404, detail=f"Object {id} not found")
+        
+        row = obj_row.iloc[0]
+        
+        # Create input data for the model
+        input_data = {
+            "mission": str(row['mission']).lower(),
+            "orbital_period_days": float(row['orbital_period_days']),
+            "transit_duration_hours": float(row['transit_duration_hours']),
+            "transit_depth_ppm": float(row['transit_depth_ppm']),
+            "stellar_radius_solar": float(row['stellar_radius_solar']),
+            "stellar_teff_K": float(row['stellar_teff_K']),
+            "snr": float(row['snr']) if pd.notnull(row['snr']) else None
+        }
+        
+        # Validate input
+        validation_result = validate_input_data(input_data)
+        if not validation_result["valid"]:
+            raise HTTPException(status_code=400, detail=validation_result["errors"])
+        
+        # Create DataFrame for prediction
+        df_input = pd.DataFrame([input_data])
+        
+        # Preprocess and predict using the trained model
+        processed_data = preprocessor.transform(df_input)
+        prediction_result = classifier.predict(processed_data)
+        
+        # Generate scientific description
+        scientific_desc = descriptor.generate_scientific_description(
+            prediction=prediction_result["predictions"][0],
+            probabilities=prediction_result["probabilities"][0],
+            orbital_period=input_data["orbital_period_days"],
+            transit_depth=input_data["transit_depth_ppm"],
+            transit_duration=input_data["transit_duration_hours"],
+            stellar_temp=input_data["stellar_teff_K"],
+            stellar_radius=input_data["stellar_radius_solar"],
+            snr=input_data["snr"]
+        )
+        
+        # Format response
+        result = {
+            "id": id,
+            "mission": input_data["mission"],
+            "prediction": prediction_result["predictions"][0],
+            "probas": prediction_result["probabilities"][0],
+            "confidence": prediction_result["confidence"][0],
+            "explainability": {
+                "shap_top5": prediction_result["shap_values"][0]
+            },
+            "scientific_description": scientific_desc
+        }
+        
+        return JSONResponse(content=result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in sky prediction for {id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/predict/single")
 async def predict_single(
     orbital_period_days: float = Form(...),
