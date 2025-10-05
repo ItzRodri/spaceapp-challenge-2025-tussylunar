@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Sky View - Exoplanet AI Classifier{% endblock %}
+
+{% block content %}
+<style>
+  body { background-color: #000 !important; }
+  #sky-container { background: #000; }
+  .modal-content { background-color: #0b0e14; color: #e6e6e6; }
+  .modal-header { border-bottom: 1px solid #1f2430; }
+  .modal-body { color: #e6e6e6; }
+  .table.table-sm td, .table.table-sm th { color: #cfd8e3; border-color: #1f2430; }
+  .progress { background-color: #1f2430; }
+  .progress-bar.bg-success { background-color: #2ecc71 !important; }
+  .progress-bar.bg-warning { background-color: #f1c40f !important; color: #222; }
+  .progress-bar.bg-danger { background-color: #e74c3c !important; }
+  #info-panel { background: rgba(10, 12, 18, 0.85) !important; }
+  .btn-outline-light { border-color: #cfd8e3; color: #cfd8e3; }
+  .btn-outline-light:hover { background: #cfd8e3; color: #0b0e14; }
+  input#planet-search { background: #0b0e14; color: #e6e6e6; border: 1px solid #2c3443; }
+  input#planet-search::placeholder { color: #9aa7b2; }
+</style>
+<div class="container-fluid p-0">
+    <div id="sky-container" style="width: 100vw; height: 100vh; background: black; position: relative; overflow: hidden;">
+        <!-- Search Input -->
+        <div style="position: absolute; top: 20px; left: 20px; z-index: 100;">
+            <input type="text" id="planet-search" placeholder="Enter planet name" 
+                   style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; background: white; color: black; width: 200px;">
+        </div>
+        
+        <!-- Info Panel -->
+        <div id="info-panel" style="position: absolute; top: 20px; right: 20px; z-index: 100; background: rgba(0,0,0,0.7); color: white; padding: 15px; border-radius: 8px; min-width: 200px;">
+            <h6><i class="fas fa-info-circle"></i> Sky Objects</h6>
+            <div id="object-count">Loading...</div>
+            <div id="hover-info" class="mt-2" style="font-size: 12px;"></div>
+        </div>
+        
+        <!-- Controls -->
+        <div style="position: absolute; bottom: 20px; left: 20px; z-index: 100;">
+            <div class="btn-group-vertical">
+                <button id="reset-view" class="btn btn-sm btn-outline-light mb-1">Reset View</button>
+                <button id="toggle-wireframe" class="btn btn-sm btn-outline-light mb-1">Toggle Wireframe</button>
+                <a href="/" class="btn btn-sm btn-outline-light">Home</a>
+            </div>
+        </div>
+        
+        <!-- Loading indicator -->
+        <div id="loading-indicator" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 200; color: white; text-align: center;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-2">Loading celestial objects...</div>
+        </div>
+        
+        <canvas id="sky-canvas" style="display: block;"></canvas>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="probModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title"><i class="fas fa-satellite"></i> Exoplanet Analysis</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="prob-content">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// Enhanced three.js scene for 360° sky view
+const canvas = document.getElementById('sky-canvas');
+const renderer = new THREE.WebGLRenderer({ 
+    canvas, 
+    antialias: true,
+    alpha: false
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0x000000, 1);
+
+const scene = new THREE.Scene();
+
+// Camera setup for 360° view
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 0); // Start at origin for 360° view
+
+// Enhanced controls for 360° navigation
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.enableZoom = true;
+controls.enablePan = false; // Disable panning for cleaner 360° experience
+controls.minDistance = 5;
+controls.maxDistance = 100;
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const planetGroup = new THREE.Group();
+scene.add(planetGroup);
+
+let skyObjects = [];
+let hoveredObject = null;
+let wireframeMode = false;
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+});
+
+// Convert RA/Dec to 3D coordinates for 360° sphere
+function raDecToCartesian(raDeg, decDeg, distance) {
+    const raRad = THREE.MathUtils.degToRad(raDeg);
+    const decRad = THREE.MathUtils.degToRad(decDeg);
+    
+    // Convert to 3D coordinates on a sphere
+    const x = distance * Math.cos(decRad) * Math.cos(raRad);
+    const y = distance * Math.cos(decRad) * Math.sin(raRad);
+    const z = distance * Math.sin(decRad);
+    
+    return new THREE.Vector3(x, y, z);
+}
+
+// Load sky objects from API
+async function loadSkyObjects() {
+    try {
+        console.log('Loading sky objects...');
+        const res = await fetch('/api/sky/objects');
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        skyObjects = data.objects || [];
+        
+        console.log(`Loaded ${skyObjects.length} objects`);
+
+        // Update info panel
+        document.getElementById('object-count').innerHTML = `
+            <strong>Objects:</strong> ${skyObjects.length}<br>
+            <small>TESS: ${skyObjects.filter(o => o.mission === 'tess').length} | 
+            Kepler: ${skyObjects.filter(o => o.mission === 'kepler').length}</small>
+        `;
+
+        // Create spheres for each object
+        skyObjects.forEach((obj, idx) => {
+            // Create sphere geometry with varying sizes
+            const radius = 0.3 + Math.random() * 0.4; // Vary size slightly
+            const sphereGeo = new THREE.SphereGeometry(radius, 8, 8);
+            
+            // Color based on mission
+            const color = obj.mission === 'tess' ? 0x44ccff : 0xffcc44;
+            const material = new THREE.MeshBasicMaterial({ 
+                color: color,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            const mesh = new THREE.Mesh(sphereGeo, material);
+            
+            // Position on sphere surface - distribute more evenly
+            const distance = 15 + (idx % 10) * 2; // Vary distance for better distribution
+            const pos = raDecToCartesian(obj.ra_deg, obj.dec_deg, distance);
+            mesh.position.copy(pos);
+            
+            // Store object data
+            mesh.userData = { 
+                id: obj.id, 
+                meta: obj,
+                originalColor: color,
+                originalOpacity: 0.9
+            };
+            
+            planetGroup.add(mesh);
+        });
+
+        // Hide loading indicator
+        document.getElementById('loading-indicator').style.display = 'none';
+        
+        console.log('Sky objects loaded successfully');
+        
+    } catch (error) {
+        console.error('Failed to load sky objects:', error);
+        document.getElementById('loading-indicator').innerHTML = `
+            <div class="text-danger">
+                <i class="fas fa-exclamation-triangle"></i><br>
+                Failed to load objects<br>
+                <small>${error.message}</small>
+            </div>
+        `;
+    }
+}
+
+// Mouse move for hover effects
+canvas.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(planetGroup.children, true);
+    
+    // Reset previous hover
+    if (hoveredObject) {
+        hoveredObject.material.color.setHex(hoveredObject.userData.originalColor);
+        hoveredObject.material.opacity = hoveredObject.userData.originalOpacity;
+    }
+    
+    if (intersects.length) {
+        const obj = intersects[0].object;
+        obj.material.color.setHex(0xff0000); // Red on hover
+        obj.material.opacity = 1.0;
+        hoveredObject = obj;
+        
+        // Update hover info
+        const meta = obj.userData.meta;
+        document.getElementById('hover-info').innerHTML = `
+            <strong>${meta.id}</strong><br>
+            Mission: ${meta.mission.toUpperCase()}<br>
+            Period: ${meta.orbital_period_days} days<br>
+            Distance: ${meta.dist_pc.toFixed(1)} pc
+        `;
+    } else {
+        hoveredObject = null;
+        document.getElementById('hover-info').innerHTML = '';
+    }
+});
+
+// Click for detailed analysis
+canvas.addEventListener('click', async (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(planetGroup.children, true);
+    
+    if (intersects.length) {
+        const obj = intersects[0].object.userData.meta;
+        await showProbability(obj);
+    }
+});
+
+// Show probability modal
+async function showProbability(obj) {
+    try {
+        // Show loading in modal
+        document.getElementById('prob-content').innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Analyzing...</span>
+                </div>
+                <div class="mt-2">Analyzing ${obj.id}...</div>
+            </div>
+        `;
+        new bootstrap.Modal(document.getElementById('probModal')).show();
+        
+        const params = new URLSearchParams({ id: obj.id });
+        const res = await fetch(`/api/sky/predict?${params.toString()}`);
+        if (!res.ok) throw new Error('Prediction failed');
+        const result = await res.json();
+        
+        const c = result.probas || result.probabilities || {};
+        const confirmed = (c.CONFIRMED || c.confirmed || 0) * 100;
+        const candidate = (c.CANDIDATE || c.candidate || 0) * 100;
+        const fp = (c.FALSE_POSITIVE || c.false_positive || 0) * 100;
+        
+        document.getElementById('prob-content').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-star"></i> Object Information</h6>
+                    <table class="table table-sm">
+                        <tr><td><strong>ID:</strong></td><td>${result.id || obj.id}</td></tr>
+                        <tr><td><strong>Mission:</strong></td><td>${(result.mission || obj.mission || 'unknown').toUpperCase()}</td></tr>
+                        <tr><td><strong>Orbital Period:</strong></td><td>${obj.orbital_period_days} days</td></tr>
+                        <tr><td><strong>Transit Depth:</strong></td><td>${obj.transit_depth_ppm} ppm</td></tr>
+                        <tr><td><strong>Stellar Temp:</strong></td><td>${obj.stellar_teff_K} K</td></tr>
+                        <tr><td><strong>SNR:</strong></td><td>${obj.snr || 'N/A'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="fas fa-chart-pie"></i> AI Prediction</h6>
+                    <div class="mb-3">
+                        <strong>Prediction:</strong> 
+                        <span class="badge bg-${getPredictionBadgeColor(result.prediction)}">${result.prediction}</span>
+                    </div>
+                    <div class="mb-2">
+                        <small>CONFIRMED</small>
+                        <div class="progress mb-1" style="height: 20px;">
+                            <div class="progress-bar bg-success" style="width:${confirmed.toFixed(1)}%">${confirmed.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small>CANDIDATE</small>
+                        <div class="progress mb-1" style="height: 20px;">
+                            <div class="progress-bar bg-warning" style="width:${candidate.toFixed(1)}%">${candidate.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small>FALSE POSITIVE</small>
+                        <div class="progress mb-1" style="height: 20px;">
+                            <div class="progress-bar bg-danger" style="width:${fp.toFixed(1)}%">${fp.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">Confidence: <strong>${result.confidence || 'N/A'}</strong></small>
+                    </div>
+                </div>
+            </div>
+            ${result.scientific_description ? `
+                <div class="mt-3">
+                    <h6><i class="fas fa-microscope"></i> Scientific Analysis</h6>
+                    <div class="alert alert-info">${result.scientific_description}</div>
+                </div>
+            ` : ''}
+        `;
+    } catch (e) {
+        console.error(e);
+        document.getElementById('prob-content').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> Failed to analyze object: ${e.message}
+            </div>
+        `;
+    }
+}
+
+function getPredictionBadgeColor(prediction) {
+    switch(prediction) {
+        case 'CONFIRMED': return 'success';
+        case 'CANDIDATE': return 'warning';
+        case 'FALSE_POSITIVE': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+// Control buttons
+document.getElementById('reset-view').addEventListener('click', () => {
+    camera.position.set(0, 0, 0);
+    controls.target.set(0, 0, 0);
+    controls.update();
+});
+
+document.getElementById('toggle-wireframe').addEventListener('click', () => {
+    wireframeMode = !wireframeMode;
+    planetGroup.children.forEach(child => {
+        if (child.material) {
+            child.material.wireframe = wireframeMode;
+        }
+    });
+    document.getElementById('toggle-wireframe').textContent = wireframeMode ? 'Solid View' : 'Wireframe';
+});
+
+// Search functionality
+document.getElementById('planet-search').addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    planetGroup.children.forEach(child => {
+        if (child.userData && child.userData.meta) {
+            const isVisible = child.userData.meta.id.toLowerCase().includes(searchTerm);
+            child.visible = isVisible;
+        }
+    });
+});
+
+// Load objects on startup
+loadSkyObjects();
+</script>
+{% endblock %}
